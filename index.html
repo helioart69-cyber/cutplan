@@ -61,6 +61,8 @@ body { margin: 0; }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-body); padding-inline: 16px; padding-block: 20px 48px; line-height: 1.5; }
 .wrap { max-width: 980px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
+.titlebar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.by { font-size: 0.85rem; color: var(--muted); }
 h1 { font-size: 1.5rem; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
 h2 { font-size: 0.8rem; margin: 0; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
 .sub { color: var(--muted); margin: 4px 0 0; font-size: 0.9rem; max-width: 62ch; }
@@ -130,7 +132,7 @@ svg .out { fill: none; stroke: var(--muted); stroke-dasharray: 5 4; }
 <body>
 <div class="wrap">
   <header>
-    <h1>재단 배치 계산기</h1>
+    <div class="titlebar"><h1>재단 배치 계산기</h1><span class="by">만든 사람 이겸 · 2026.10.02</span></div>
     <p class="sub">종이 크기와 자를 사각형을 입력하면, 종이를 가장 적게 쓰는 배치와 자르는 위치를 계산합니다. 모든 길이의 단위는 cm입니다.</p>
   </header>
 
