@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>재단 배치 계산기</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0b5fa5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="재단계산">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+html { background: var(--bg); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); color-scheme: light; }
+body { margin: 0; }
+@media (prefers-color-scheme: dark) { html { color-scheme: dark; } }
+/* Layout: drafting-table tool. Inputs stacked in cards on top, result sheets below as horizontally scrollable plan drawings. */
+:root {
+  --bg: #eef1ef;
+  --panel: #f9fbfa;
+  --ink: #1c2b2a;
+  --muted: #5d6f6c;
+  --line: #c5d0cd;
+  --accent: #0b5fa5;
+  --accent-ink: #ffffff;
+  --warn: #b4410c;
+  --ok: #1b7a4b;
+  --p0: #f1b7a4; --p0s: #b5573a;
+  --p1: #a9ddc9; --p1s: #2f8a6e;
+  --p2: #9cc3ee; --p2s: #2f69a8;
+  --p3: #ebd08a; --p3s: #9a7a1c;
+  --p4: #cbbbea; --p4s: #6a53a3;
+  --p5: #b5c9cc; --p5s: #4d6a6f;
+  --font-body: "IBM Plex Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1a1d; --panel: #16262a; --ink: #dce7e5; --muted: #8fa5a2; --line: #2b4146;
+    --accent: #6cb6f0; --accent-ink: #08202f; --warn: #f09a6a; --ok: #6fd1a0;
+    --p0: #8c4a38; --p0s: #e69a82; --p1: #2f7a66; --p1s: #7fd0b6; --p2: #2f5f95; --p2s: #8fbdf0;
+    --p3: #8a6f2a; --p3s: #e6c870; --p4: #62508f; --p4s: #beaaf0; --p5: #4a6468; --p5s: #a9c4c8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1a1d; --panel: #16262a; --ink: #dce7e5; --muted: #8fa5a2; --line: #2b4146;
+  --accent: #6cb6f0; --accent-ink: #08202f; --warn: #f09a6a; --ok: #6fd1a0;
+  --p0: #8c4a38; --p0s: #e69a82; --p1: #2f7a66; --p1s: #7fd0b6; --p2: #2f5f95; --p2s: #8fbdf0;
+  --p3: #8a6f2a; --p3s: #e6c870; --p4: #62508f; --p4s: #beaaf0; --p5: #4a6468; --p5s: #a9c4c8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); padding-inline: 16px; padding-block: 20px 48px; line-height: 1.5; }
+.wrap { max-width: 980px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-size: 1.5rem; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font-size: 0.8rem; margin: 0; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.sub { color: var(--muted); margin: 4px 0 0; font-size: 0.9rem; max-width: 62ch; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.rows { display: flex; flex-direction: column; gap: 8px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
+.row:last-child { border-bottom: 0; padding-bottom: 0; }
+.f { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.f label { font-size: 0.72rem; color: var(--muted); }
+.f.name { width: 72px; } .f.num { width: 96px; } .f.qty { width: 74px; } .f.mode { flex: 1 1 130px; min-width: 120px; }
+input, select { font: inherit; font-family: var(--font-num); font-size: 1.1rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 12px 10px; min-height: 48px; width: 100%; min-width: 0; }
+select { font-family: var(--font-body); font-size: 0.9rem; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button { font: inherit; cursor: pointer; border-radius: 4px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); padding: 12px 14px; min-height: 46px; }
+button.ghost { color: var(--muted); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; padding: 12px 16px; font-size: 1.05rem; }
+button.primary[disabled] { opacity: 0.6; cursor: wait; }
+.del { padding: 12px 14px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.note { font-size: 0.8rem; color: var(--muted); }
+.ex { font-size: 0.75rem; color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 1px 6px; }
+.opts { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.stat { border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; background: var(--bg); }
+.stat b { display: block; font-family: var(--font-num); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 0.75rem; color: var(--muted); }
+.status { font-weight: 700; }
+.status.ok { color: var(--ok); } .status.bad { color: var(--warn); }
+.sheet-head { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.sheet-head h3 { margin: 0; font-size: 1rem; }
+.zoom { display: flex; gap: 6px; }
+.zoom button { padding: 8px 18px; font-size: 1.1rem; }
+.plan { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); }
+.plan svg { display: block; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+td.n { font-family: var(--font-num); }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.joins { font-size: 0.85rem; margin: 0; padding-left: 18px; }
+.stepcard { border: 1px solid var(--accent); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
+.stepcard .big { font-size: 1.5rem; font-weight: 700; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.stepcard .big small { font-size: 0.85rem; font-weight: 400; color: var(--muted); font-family: var(--font-num); }
+.stepcard dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 1.05rem; }
+.stepcard dt { color: var(--muted); } .stepcard dd { margin: 0; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.stepcard .btns { display: flex; gap: 8px; } .stepcard .btns button { flex: 1; font-size: 1.1rem; min-height: 52px; }
+.presets { display: flex; flex-direction: column; gap: 6px; }
+.preset { display: flex; gap: 8px; align-items: center; } .preset span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.legend { font-size: 0.78rem; color: var(--muted); }
+svg text { font-family: var(--font-num); fill: var(--ink); }
+svg .gray { fill: var(--muted); }
+svg .dimline { stroke: var(--muted); stroke-width: 1; }
+svg .out { fill: none; stroke: var(--muted); stroke-dasharray: 5 4; }
+.t0 { fill: var(--p0); stroke: var(--p0s); } .t1 { fill: var(--p1); stroke: var(--p1s); } .t2 { fill: var(--p2); stroke: var(--p2s); }
+.t3 { fill: var(--p3); stroke: var(--p3s); } .t4 { fill: var(--p4); stroke: var(--p4s); } .t5 { fill: var(--p5); stroke: var(--p5s); }
+.c0 { background: var(--p0); } .c1 { background: var(--p1); } .c2 { background: var(--p2); } .c3 { background: var(--p3); } .c4 { background: var(--p4); } .c5 { background: var(--p5); }
+@media (prefers-reduced-motion: no-preference) { button { transition: opacity .15s; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>재단 배치 계산기</h1>
+    <p class="sub">종이 크기와 자를 사각형을 입력하면, 종이를 가장 적게 쓰는 배치와 자르는 위치를 계산합니다. 모든 길이는 cm입니다.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="h-sheets">
+    <div class="bar"><h2 id="h-sheets">가진 종이</h2><span class="ex" id="exTag">예시 값</span></div>
+    <div class="rows" id="sheetRows"></div>
+    <div class="bar"><button id="addSheet" type="button">+ 종이 추가</button><span class="note">폭만 입력하면 필요한 길이를 계산합니다. 길이를 입력하면 그 안에서 배치합니다.</span></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-pieces">
+    <h2 id="h-pieces">자를 사각형</h2>
+    <div class="rows" id="pieceRows"></div>
+    <div class="bar"><button id="addPiece" type="button">+ 사각형 추가</button><span class="note">가로·세로는 돌려 놓아도 됩니다.</span></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-opt">
+    <h2 id="h-opt">옵션</h2>
+    <div class="opts">
+      <div class="f num"><label for="gap">사각형 간격</label><input id="gap" type="number" inputmode="decimal" min="0" step="0.1" value="0"></div>
+      <div class="f" style="flex:1 1 220px"><label>분할은 각 사각형 줄에서 선택합니다</label><span class="note">'긴 변 나눔'은 긴 변만 둘로 잘라 이어 붙이는 방식입니다. 짧은 변은 그대로 유지됩니다.</span></div>
+    </div>
+    <button class="primary" id="go" type="button">배치 계산</button>
+    <div class="f"><label for="pname">자주 쓰는 값 저장</label><div class="preset"><input id="pname" type="text" placeholder="이름 (예: 현장A)" style="font-family:var(--font-body)"><button type="button" id="savePreset">저장</button></div></div>
+    <div class="presets" id="presetList"></div>
+  </section>
+
+  <section id="result" hidden class="panel" aria-live="polite"></section>
+</div>
+
+<script>
+// Cutting-plan solver: MaxRects decoder + randomized local search.
+// Coordinates: x runs along the paper length, y across the paper width (cm).
+function makeSolver() {
+  const EPS = 1e-6;
+
+  function splitFree(free, px, py, pw, ph) {
+    const out = [];
+    for (const f of free) {
+      if (px >= f.x + f.w - EPS || px + pw <= f.x + EPS || py >= f.y + f.h - EPS || py + ph <= f.y + EPS) {
+        out.push(f);
+        continue;
+      }
+      if (px > f.x + EPS) out.push({ x: f.x, y: f.y, w: px - f.x, h: f.h });
+      if (px + pw < f.x + f.w - EPS) out.push({ x: px + pw, y: f.y, w: f.x + f.w - px - pw, h: f.h });
+      if (py > f.y + EPS) out.push({ x: f.x, y: f.y, w: f.w, h: py - f.y });
+      if (py + ph < f.y + f.h - EPS) out.push({ x: f.x, y: py + ph, w: f.w, h: f.y + f.h - py - ph });
+    }
+    // prune contained
+    const res = [];
+    for (let i = 0; i < out.length; i++) {
+      let contained = false;
+      for (let j = 0; j < out.length && !contained; j++) {
+        if (i === j) continue;
+        const a = out[i], b = out[j];
+        if (a.x >= b.x - EPS && a.y >= b.y - EPS && a.x + a.w <= b.x + b.w + EPS && a.y + a.h <= b.y + b.h + EPS) {
+          if (!(Math.abs(a.x - b.x) < EPS && Math.abs(a.y - b.y) < EPS && Math.abs(a.w - b.w) < EPS && Math.abs(a.h - b.h) < EPS && i < j)) contained = true;
+        }
+      }
+      if (!contained) res.push(out[i]);
+    }
+    return res;
+  }
+
+  // pieces: [{a,b,...}] placed in order; returns {placed, unplaced, cost, used}
+  function pack(sheets, pieces, gap) {
+    const st = sheets.map((s) => ({ W: s.W + gap, L: s.L + gap, free: [{ x: 0, y: 0, w: s.L + gap, h: s.W + gap }], used: 0, rawW: s.W }));
+    const placed = [];
+    const unplaced = [];
+    for (const p of pieces) {
+      let best = null;
+      for (let si = 0; si < st.length; si++) {
+        const s = st[si];
+        for (const f of s.free) {
+          for (let r = 0; r < 2; r++) {
+            const pl = (r ? p.b : p.a) + gap, pw = (r ? p.a : p.b) + gap;
+            if (pl > f.w + EPS || pw > f.h + EPS) continue;
+            const nu = Math.max(s.used, f.x + pl);
+            const cost = s.rawW * (nu - s.used);
+            const key = [cost, f.x + pl, Math.min(f.w - pl, f.h - pw)];
+            if (!best || key[0] < best.key[0] - EPS || (Math.abs(key[0] - best.key[0]) < EPS && (key[1] < best.key[1] - EPS || (Math.abs(key[1] - best.key[1]) < EPS && key[2] < best.key[2] - EPS)))) {
+              best = { si, x: f.x, y: f.y, pl, pw, key, nu, rot: r };
+            }
+          }
+        }
+      }
+      if (!best) { unplaced.push(p); continue; }
+      const s = st[best.si];
+      s.free = splitFree(s.free, best.x, best.y, best.pl, best.pw);
+      s.used = best.nu;
+      placed.push({ sheet: best.si, x: best.x, y: best.y, l: best.pl - gap, w: best.pw - gap, piece: p, rot: best.rot });
+    }
+    let cost = 0;
+    const used = st.map((s, i) => {
+      const u = Math.max(0, s.used - gap);
+      if (u > 0) cost += sheets[i].W * u;
+      return u;
+    });
+    return { placed, unplaced, cost, used };
+  }
+
+  function rnd(n) { return Math.floor(Math.random() * n); }
+
+  function solve(sheets, types, gap, ms) {
+    // units
+    const units = [];
+    types.forEach((t, ti) => {
+      for (let k = 0; k < t.qty; k++) units.push({ ti, k, name: t.name, a: t.a, b: t.b, mode: t.mode });
+    });
+    if (!units.length || !sheets.length) return null;
+
+    // cut candidates
+    const dims = new Set();
+    types.forEach((t) => { dims.add(t.a); dims.add(t.b); });
+    const cand = new Set();
+    for (const s of sheets) for (const d of dims) { cand.add(s.W - d); cand.add(s.W - d - gap); cand.add(s.L - d); }
+    for (const d of dims) cand.add(d / 2);
+    const candArr = [...cand].filter((v) => v > 5);
+
+    function expand(g) {
+      const list = [];
+      for (const idx of g.order) {
+        const u = units[idx];
+        const sp = g.split[idx];
+        const label = u.name + (types[u.ti].qty > 1 ? (u.k + 1) : '');
+        if (!sp) {
+          list.push({ a: u.a, b: u.b, name: u.name, label, group: null, ti: u.ti });
+        } else {
+          // sp = {side: 0|1, cut}
+          const long = u.a >= u.b ? 0 : 1; // 0 => cut dim a
+          const side = u.mode === 'long' ? long : sp.side;
+          const total = side === 0 ? u.a : u.b;
+          const c = Math.min(Math.max(sp.cut, 5), total - 5);
+          const o1 = side === 0 ? { a: c, b: u.b } : { a: u.a, b: c };
+          const o2 = side === 0 ? { a: total - c, b: u.b } : { a: u.a, b: total - c };
+          list.push({ ...o1, name: u.name, label: label + 'a', group: label, ti: u.ti, cutDesc: `${u.a}×${u.b}` });
+          list.push({ ...o2, name: u.name, label: label + 'b', group: label, ti: u.ti, cutDesc: `${u.a}×${u.b}` });
+        }
+      }
+      return list;
+    }
+
+    function evalG(g) {
+      const pieces = expand(g);
+      const r = pack(sheets, pieces, gap);
+      const unArea = r.unplaced.reduce((s, p) => s + p.a * p.b, 0);
+      const nsplit = Object.keys(g.split).length;
+      r.score = unArea * 1e4 + r.cost + nsplit * 0.01;
+      r.genome = g;
+      return r;
+    }
+
+    function randCut(u) {
+      const side = Math.random() < 0.5 ? 0 : 1;
+      const longSide = u.a >= u.b ? 0 : 1;
+      const s = u.mode === 'long' ? longSide : side;
+      const total = s === 0 ? u.a : u.b;
+      let cut;
+      const valid = candArr.filter((v) => v > 5 && v < total - 5);
+      if (valid.length && Math.random() < 0.7) cut = valid[rnd(valid.length)];
+      else cut = 6 + rnd(Math.max(1, Math.floor(total - 11)));
+      if (Math.random() < 0.5) cut = total - cut;
+      return { side: s, cut };
+    }
+
+    function baseOrders() {
+      const idx = units.map((_, i) => i);
+      const A = (i) => units[i].a * units[i].b;
+      const M = (i) => Math.max(units[i].a, units[i].b);
+      const m = (i) => Math.min(units[i].a, units[i].b);
+      return [
+        [...idx].sort((x, y) => A(y) - A(x)),
+        [...idx].sort((x, y) => M(y) - M(x)),
+        [...idx].sort((x, y) => m(y) - m(x)),
+        [...idx].sort((x, y) => A(x) - A(y)),
+      ];
+    }
+
+    const splittable = units.map((u, i) => (u.mode !== 'none' ? i : -1)).filter((i) => i >= 0);
+    let best = null;
+    let cur = null;
+    const t0 = Date.now();
+    let iter = 0;
+    const orders = baseOrders();
+
+    function consider(g) {
+      const r = evalG(g);
+      if (!best || r.score < best.score - EPS) best = r;
+      return r;
+    }
+
+    // seeds
+    for (const o of orders) {
+      consider({ order: o, split: {} });
+      if (splittable.length) {
+        const sp = {};
+        splittable.forEach((i) => (sp[i] = randCut(units[i])));
+        consider({ order: o, split: sp });
+      }
+    }
+    cur = best;
+
+    while (Date.now() - t0 < ms) {
+      iter++;
+      let g;
+      const roll = Math.random();
+      if (roll < 0.08) {
+        // restart from random-ish
+        const order = [...orders[rnd(orders.length)]];
+        for (let k = 0; k < 6; k++) { const i = rnd(order.length), j = rnd(order.length); [order[i], order[j]] = [order[j], order[i]]; }
+        const split = {};
+        const p = [0, 0.3, 0.6, 1][rnd(4)];
+        splittable.forEach((i) => { if (Math.random() < p) split[i] = randCut(units[i]); });
+        g = { order, split };
+      } else {
+        const base = Math.random() < 0.7 ? best.genome : cur.genome;
+        const order = base.order.slice();
+        const split = { ...base.split };
+        const muts = 1 + rnd(3);
+        for (let m = 0; m < muts; m++) {
+          const r = Math.random();
+          if (r < 0.45 || !splittable.length) {
+            const i = rnd(order.length), j = rnd(order.length);
+            if (Math.random() < 0.5) [order[i], order[j]] = [order[j], order[i]];
+            else { const [v] = order.splice(i, 1); order.splice(j, 0, v); }
+          } else if (r < 0.65) {
+            const i = splittable[rnd(splittable.length)];
+            if (split[i]) delete split[i]; else split[i] = randCut(units[i]);
+          } else if (r < 0.9) {
+            const keys = Object.keys(split);
+            if (keys.length) { const k = keys[rnd(keys.length)]; split[k] = randCut(units[+k]); }
+          } else {
+            const keys = Object.keys(split);
+            if (keys.length) { const k = keys[rnd(keys.length)]; split[k] = { ...split[k], cut: Math.max(6, split[k].cut + (rnd(7) - 3)) }; }
+          }
+        }
+        g = { order, split };
+      }
+      const r = evalG(g);
+      if (r.score < best.score - EPS) best = r;
+      if (r.score <= cur.score + EPS || Math.random() < 0.02) cur = r;
+    }
+    best.iter = iter;
+    return best;
+  }
+
+  return { solve, pack };
+}
+
+</script>
+<script>
+(function () {
+  var solver = makeSolver();
+  var KEY = 'cutplan-v1';
+  var EXAMPLE = {
+    sheets: [{ W: 100, L: 300 }, { W: 150, L: null }],
+    pieces: [
+      { name: 'A', a: 83, b: 115, qty: 4, mode: 'none' },
+      { name: 'B', a: 82, b: 84, qty: 4, mode: 'none' },
+      { name: 'C', a: 96, b: 208, qty: 4, mode: 'long' }
+    ],
+    gap: 0
+  };
+  var state = JSON.parse(JSON.stringify(EXAMPLE));
+  var isExample = true;
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && saved.sheets && saved.pieces) { state = saved; isExample = false; }
+  } catch (e) {}
+
+  function persist() {
+    isExample = false;
+    document.getElementById('exTag').hidden = true;
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function fmt(n) { return String(Number((+n).toFixed(1))); }
+
+  function renderRows() {
+    $('exTag').hidden = !isExample;
+    $('gap').value = state.gap;
+    $('sheetRows').innerHTML = state.sheets.map(function (s, i) {
+      return '<div class="row" data-i="' + i + '">' +
+        '<div class="f num"><label for="sw' + i + '">폭</label><input id="sw' + i + '" data-k="W" type="number" inputmode="decimal" min="1" value="' + s.W + '"></div>' +
+        '<div class="f num"><label for="sl' + i + '">길이 (선택)</label><input id="sl' + i + '" data-k="L" type="number" inputmode="decimal" min="1" placeholder="비우면 무제한" value="' + (s.L == null ? '' : s.L) + '"></div>' +
+        '<button class="ghost del" type="button" data-del="' + i + '" aria-label="종이 ' + (i + 1) + ' 삭제">삭제</button></div>';
+    }).join('');
+    $('pieceRows').innerHTML = state.pieces.map(function (p, i) {
+      return '<div class="row" data-i="' + i + '">' +
+        '<div class="f name"><label for="pn' + i + '">이름</label><input id="pn' + i + '" data-k="name" type="text" maxlength="4" value="' + esc(p.name) + '" style="font-family:var(--font-body)"></div>' +
+        '<div class="f num"><label for="pa' + i + '">가로</label><input id="pa' + i + '" data-k="a" type="number" inputmode="decimal" min="1" value="' + p.a + '"></div>' +
+        '<div class="f num"><label for="pb' + i + '">세로</label><input id="pb' + i + '" data-k="b" type="number" inputmode="decimal" min="1" value="' + p.b + '"></div>' +
+        '<div class="f qty"><label for="pq' + i + '">수량</label><input id="pq' + i + '" data-k="qty" type="number" inputmode="numeric" min="1" step="1" value="' + p.qty + '"></div>' +
+        '<div class="f mode"><label for="pm' + i + '">분할</label><select id="pm' + i + '" data-k="mode">' +
+        ['none|안 나눔', 'long|긴 변 나눔', 'any|아무 변이나'].map(function (o) { var v = o.split('|'); return '<option value="' + v[0] + '"' + (p.mode === v[0] ? ' selected' : '') + '>' + v[1] + '</option>'; }).join('') +
+        '</select></div>' +
+        '<button class="ghost del" type="button" data-del="' + i + '" aria-label="사각형 ' + esc(p.name) + ' 삭제">삭제</button></div>';
+    }).join('');
+  }
+
+  function onEdit(listName) {
+    return function (e) {
+      var t = e.target, row = t.closest('.row');
+      if (!row || !t.dataset.k) return;
+      var item = state[listName][+row.dataset.i];
+      var k = t.dataset.k;
+      item[k] = (k === 'name' || k === 'mode') ? t.value : (k === 'L' && t.value === '' ? null : parseFloat(t.value));
+      persist();
+    };
+  }
+  function onDel(listName, min) {
+    return function (e) {
+      var b = e.target.closest('[data-del]');
+      if (!b) return;
+      if (state[listName].length <= min) return;
+      state[listName].splice(+b.dataset.del, 1);
+      persist(); renderRows();
+    };
+  }
+  $('sheetRows').addEventListener('input', onEdit('sheets'));
+  $('sheetRows').addEventListener('change', onEdit('sheets'));
+  $('sheetRows').addEventListener('click', onDel('sheets', 1));
+  $('pieceRows').addEventListener('input', onEdit('pieces'));
+  $('pieceRows').addEventListener('change', onEdit('pieces'));
+  $('pieceRows').addEventListener('click', onDel('pieces', 1));
+  $('gap').addEventListener('input', function () { state.gap = parseFloat(this.value) || 0; persist(); });
+  $('addSheet').addEventListener('click', function () { state.sheets.push({ W: 100, L: 300 }); persist(); renderRows(); });
+  $('addPiece').addEventListener('click', function () {
+    var names = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', used = state.pieces.map(function (p) { return p.name; });
+    var n = names.split('').find(function (c) { return used.indexOf(c) < 0; }) || 'X';
+    state.pieces.push({ name: n, a: 50, b: 50, qty: 1, mode: 'none' }); persist(); renderRows();
+  });
+
+  var last = null, zoomK = null, wake = null;
+  var PKEY = 'cutplan-presets';
+  function loadPresets() { try { return JSON.parse(localStorage.getItem(PKEY) || '[]'); } catch (e) { return []; } }
+  function savePresets(a) { try { localStorage.setItem(PKEY, JSON.stringify(a)); } catch (e) {} }
+  function renderPresets() {
+    var a = loadPresets();
+    $('presetList').innerHTML = a.map(function (p, i) { return '<div class="preset"><span>' + esc(p.name) + '</span><button type="button" data-load="' + i + '">불러오기</button><button type="button" class="ghost" data-rm="' + i + '" aria-label="' + esc(p.name) + ' 삭제">삭제</button></div>'; }).join('');
+  }
+  $('savePreset').addEventListener('click', function () {
+    var n = $('pname').value.trim();
+    if (!n) { $('pname').focus(); return; }
+    var a = loadPresets().filter(function (p) { return p.name !== n; });
+    a.push({ name: n, data: JSON.parse(JSON.stringify(state)) });
+    savePresets(a); $('pname').value = ''; renderPresets();
+  });
+  $('presetList').addEventListener('click', function (e) {
+    var l = e.target.closest('[data-load]'), r = e.target.closest('[data-rm]'), a = loadPresets();
+    if (l) { state = JSON.parse(JSON.stringify(a[+l.dataset.load].data)); persist(); renderRows(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    if (r) { a.splice(+r.dataset.rm, 1); savePresets(a); renderPresets(); }
+  });
+
+  function stepsInit() {
+    last.steps = last.r.placed.slice().sort(function (a, b) { return a.sheet - b.sheet || a.x - b.x || a.y - b.y; });
+    last.order = new Map(); last.steps.forEach(function (p, i) { last.order.set(p, i); });
+    last.stepOn = false; last.step = 0;
+  }
+  function updateStepCard(scroll) {
+    var card = $('stepCard'); if (!card) return;
+    var n = last.steps.length;
+    if (!last.stepOn) {
+      card.innerHTML = '<div class="big">재단 순서 보기</div><div class="note">조각을 하나씩 보여주고, 끝낸 조각은 흐리게 표시합니다. 화면이 꺼지지 않게 합니다.</div><div class="btns"><button type="button" class="primary" data-s="start">시작</button></div>';
+    } else {
+      var p = last.steps[last.step], pc = p.piece;
+      var join = '';
+      if (pc.group) {
+        var mates = last.r.placed.filter(function (q) { return q.piece.group === pc.group; }).map(function (q) { return q.piece.label; }).sort();
+        join = '<dt>이어 붙임</dt><dd>' + esc(mates.join(' + ')) + ' → ' + esc(pc.cutDesc) + '</dd>';
+      }
+      card.innerHTML = '<div class="big"><span class="sw c' + (pc.ti % 6) + '" style="width:16px;height:16px"></span>' + esc(pc.label) + ' <small>' + (last.step + 1) + ' / ' + n + '</small></div>' +
+        '<dl><dt>종이</dt><dd>' + (p.sheet + 1) + '번 (폭 ' + fmt(last.sheets[p.sheet].W) + ')</dd>' +
+        '<dt>길이 위치</dt><dd>' + fmt(p.x) + ' ~ ' + fmt(p.x + p.l) + ' (길이 ' + fmt(p.l) + ')</dd>' +
+        '<dt>폭 위치</dt><dd>' + fmt(p.y) + ' ~ ' + fmt(p.y + p.w) + ' (폭 ' + fmt(p.w) + ')</dd>' +
+        '<dt>크기</dt><dd>' + fmt(p.l) + ' × ' + fmt(p.w) + '</dd>' + join + '</dl>' +
+        '<div class="btns"><button type="button" data-s="prev"' + (last.step === 0 ? ' disabled' : '') + '>이전</button><button type="button" class="primary" data-s="next"' + (last.step >= n - 1 ? ' disabled' : '') + '>다음</button></div>' +
+        '<div class="btns"><button type="button" class="ghost" data-s="end">끝내기</button></div>';
+    }
+    $('result').querySelectorAll('.plan').forEach(function (div) { div.innerHTML = sheetSvg(+div.dataset.si, zoomK); });
+    if (scroll && last.stepOn) {
+      var p2 = last.steps[last.step];
+      var div = $('result').querySelector('.plan[data-si="' + p2.sheet + '"]');
+      if (div) { div.scrollLeft = Math.max(0, 46 + p2.x * zoomK - 24); div.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    }
+  }
+  function stepClick(e) {
+    var b = e.target.closest('[data-s]'); if (!b) return;
+    var a = b.dataset.s;
+    if (a === 'start') {
+      last.stepOn = true; last.step = 0;
+      try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) { wake = w; }, function () {}); } catch (x) {}
+    } else if (a === 'next') last.step = Math.min(last.steps.length - 1, last.step + 1);
+    else if (a === 'prev') last.step = Math.max(0, last.step - 1);
+    else if (a === 'end') { last.stepOn = false; try { if (wake) { wake.release(); wake = null; } } catch (x) {} }
+    updateStepCard(true);
+  }
+
+  $('go').addEventListener('click', function () {
+    var btn = this, res = $('result');
+    var unl = state.sheets.map(function (s) { return !(+s.L > 0); });
+    var sheets = state.sheets.map(function (s, i) { return { W: +s.W, L: unl[i] ? 100000 : +s.L }; });
+    var types = state.pieces.map(function (p) { return { name: (p.name || '?').trim() || '?', a: +p.a, b: +p.b, qty: Math.round(+p.qty), mode: p.mode }; });
+    var bad = sheets.some(function (s) { return !(s.W > 0); }) || types.some(function (t) { return !(t.a > 0 && t.b > 0 && t.qty >= 1); });
+    res.hidden = false;
+    if (bad) { res.innerHTML = '<span class="status bad">크기와 수량을 모두 0보다 크게 입력하세요.</span>'; return; }
+    var total = types.reduce(function (s, t) { return s + t.qty; }, 0);
+    if (total > 80) { res.innerHTML = '<span class="status bad">사각형은 전체 80개까지 계산할 수 있습니다. 지금은 ' + total + '개입니다.</span>'; return; }
+    btn.disabled = true; btn.textContent = '계산 중…';
+    res.innerHTML = '<span class="note">가장 적게 쓰는 배치를 찾는 중입니다. 약 3초 걸립니다.</span>';
+    setTimeout(function () {
+      var r = solver.solve(sheets, types, +state.gap || 0, 3000);
+      btn.disabled = false; btn.textContent = '배치 다시 계산';
+      last = { r: r, sheets: sheets, types: types, unl: unl };
+      stepsInit();
+      zoomK = null;
+      render();
+      res.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 40);
+  });
+
+  function typeIndexClass(ti) { return 't' + (ti % 6); }
+
+  function dimTicks(vals, scale, minPx) {
+    var u = Array.from(new Set(vals.map(function (v) { return Math.round(v * 100) / 100; }))).sort(function (a, b) { return a - b; });
+    return u;
+  }
+
+  function sheetSvg(si, k) {
+    var r = last.r, sh = last.sheets[si], used = r.used[si];
+    var ps = r.placed.filter(function (p) { return p.sheet === si; });
+    var curP = last.stepOn ? last.steps[last.step] : null;
+    var L0 = 46, T0 = 54, R0 = 24, B0 = 14;
+    var wpx = L0 + used * k + R0, hpx = T0 + sh.W * k + B0;
+    var o = '<svg xmlns="http://www.w3.org/2000/svg" width="' + wpx + '" height="' + hpx + '" viewBox="0 0 ' + wpx + ' ' + hpx + '" role="img" aria-label="종이 ' + (si + 1) + ' 재단도">';
+    o += '<rect class="out" x="' + L0 + '" y="' + T0 + '" width="' + used * k + '" height="' + sh.W * k + '"/>';
+    ps.forEach(function (p) {
+      var x = L0 + p.x * k, y = T0 + p.y * k, w = p.l * k, h = p.w * k;
+      var isCur = curP === p, done = curP && last.order.get(p) < last.step;
+      o += '<rect class="' + typeIndexClass(p.piece.ti) + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" stroke-width="' + (isCur ? 4 : 1) + '"' + (done ? ' opacity="0.3"' : (curP && !isCur ? ' opacity="0.7"' : '')) + (isCur ? ' style="stroke:var(--accent)"' : '') + '/>';
+      var lab = p.piece.label, sz = fmt(p.l) + '×' + fmt(p.w);
+      var cx = x + w / 2, cy = y + h / 2;
+      if (w >= 54 && h >= 30) {
+        o += '<text x="' + cx + '" y="' + (cy - 2) + '" text-anchor="middle" font-size="12" font-weight="600">' + esc(lab) + '</text>';
+        o += '<text x="' + cx + '" y="' + (cy + 11) + '" text-anchor="middle" font-size="10">' + sz + '</text>';
+      } else if (w >= 26 && h >= 14) {
+        o += '<text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" font-size="10">' + esc(lab) + '</text>';
+      }
+    });
+    // top dimension
+    var xs = [0, used];
+    ps.forEach(function (p) { xs.push(p.x, p.x + p.l); });
+    var ux = dimTicks(xs);
+    var yl = T0 - 22;
+    o += '<line class="dimline" x1="' + L0 + '" y1="' + yl + '" x2="' + (L0 + used * k) + '" y2="' + yl + '"/>';
+    var lastLab = -999;
+    ux.forEach(function (v, i) {
+      var px = L0 + v * k;
+      o += '<line class="dimline" x1="' + px + '" y1="' + (yl - 4) + '" x2="' + px + '" y2="' + (yl + 4) + '"/>';
+      if (px - lastLab >= 30) {
+        o += '<text class="gray" x="' + px + '" y="' + (yl - 8) + '" text-anchor="middle" font-size="9">' + fmt(v) + '</text>';
+        lastLab = px;
+      }
+      if (i > 0) {
+        var gap = (v - ux[i - 1]) * k;
+        if (gap >= 30) o += '<text x="' + (px - gap / 2) + '" y="' + (yl + 15) + '" text-anchor="middle" font-size="10" font-weight="600">' + fmt(v - ux[i - 1]) + '</text>';
+      }
+    });
+    // left dimension
+    var ys = [0, sh.W];
+    ps.forEach(function (p) { ys.push(p.y, p.y + p.w); });
+    var uy = dimTicks(ys).filter(function (v) { return v <= sh.W + 1e-6; });
+    var xl = L0 - 12;
+    o += '<line class="dimline" x1="' + xl + '" y1="' + T0 + '" x2="' + xl + '" y2="' + (T0 + sh.W * k) + '"/>';
+    uy.forEach(function (v, i) {
+      var py = T0 + v * k;
+      o += '<line class="dimline" x1="' + (xl - 4) + '" y1="' + py + '" x2="' + (xl + 4) + '" y2="' + py + '"/>';
+      if (i > 0) {
+        var gap = (v - uy[i - 1]) * k;
+        if (gap >= 24) o += '<text x="' + (xl - 7) + '" y="' + (py - gap / 2) + '" text-anchor="middle" font-size="10" font-weight="600" transform="rotate(-90 ' + (xl - 7) + ' ' + (py - gap / 2) + ')">' + fmt(v - uy[i - 1]) + '</text>';
+      }
+    });
+    o += '</svg>';
+    return o;
+  }
+
+  function render() {
+    var r = last.r, res = $('result');
+    if (!r) { res.innerHTML = '<span class="status bad">입력이 비어 있습니다.</span>'; return; }
+    var nPieces = last.types.reduce(function (s, t) { return s + t.qty; }, 0);
+    var unplacedUnits = {};
+    r.unplaced.forEach(function (p) { unplacedUnits[p.group || p.label] = p; });
+    var nUn = Object.keys(unplacedUnits).length;
+    var pieceArea = last.types.reduce(function (s, t) { return s + t.a * t.b * t.qty; }, 0);
+    var placedArea = r.placed.reduce(function (s, p) { return s + p.l * p.w; }, 0);
+    var paperArea = 0;
+    last.sheets.forEach(function (s, i) { paperArea += s.W * r.used[i]; });
+    var util = paperArea ? placedArea / paperArea * 100 : 0;
+
+    var h = '';
+    if (nUn === 0) h += '<div class="status ok">' + nPieces + '개 모두 배치했습니다.</div>';
+    else h += '<div class="status bad">' + (nPieces - nUn) + '개만 배치했습니다. ' + nUn + '개는 종이가 모자라 못 놓았습니다: ' + Object.keys(unplacedUnits).map(esc).join(', ') + '</div>' +
+      '<div class="note">종이 길이를 늘리거나, 해당 사각형의 분할을 \'긴 변 나눔\'으로 바꿔 보세요.</div>';
+    h += '<div class="stats">';
+    last.sheets.forEach(function (s, i) {
+      h += '<div class="stat"><span>종이 ' + (i + 1) + ' (폭 ' + fmt(s.W) + ')</span><b>' + (r.used[i] > 0 ? (last.unl[i] ? fmt(r.used[i]) + 'cm 필요' : fmt(r.used[i]) + ' / ' + fmt(s.L)) : '안 씀') + '</b><span>' + (r.used[i] > 0 ? (last.unl[i] ? '길이 제한 없음 (' + (r.used[i] / 100).toFixed(2) + 'm)' : '남는 길이 ' + fmt(s.L - r.used[i]) + 'cm') : '') + '</span></div>';
+    });
+    h += '<div class="stat"><span>종이 활용률</span><b>' + util.toFixed(1) + '%</b><span>빈 공간 ' + ((paperArea - placedArea) / 10000).toFixed(2) + '㎡</span></div></div>';
+
+    // joins
+    var groups = {};
+    r.placed.forEach(function (p) { if (p.piece.group) (groups[p.piece.group] = groups[p.piece.group] || []).push(p); });
+    var gk = Object.keys(groups);
+    if (gk.length) {
+      h += '<div><h2>이어 붙일 조각</h2><ul class="joins">' + gk.map(function (g) {
+        var ps = groups[g].slice().sort(function (a, b) { return a.piece.label < b.piece.label ? -1 : 1; });
+        return '<li>' + esc(ps.map(function (p) { return p.piece.label; }).join(' + ')) + ' → ' + esc(ps[0].piece.cutDesc) + ' (' + ps.map(function (p) { return fmt(p.piece.a) + '×' + fmt(p.piece.b); }).join(' + ') + ')</li>';
+      }).join('') + '</ul></div>';
+    }
+
+    // legend
+    h += '<div class="legend">' + last.types.map(function (t, i) { return '<span class="sw c' + (i % 6) + '"></span>' + esc(t.name) + ' ' + fmt(t.a) + '×' + fmt(t.b) + ' ×' + t.qty; }).join(' &nbsp; ') + '</div>';
+    h += '<div class="legend">그림 표기: 길이×폭. 작은 회색 숫자는 시작점에서 자르는 위치, 굵은 숫자는 구간 길이입니다.</div>';
+
+    h += '<div id="stepCard" class="stepcard"></div>';
+    // sheets
+    var maxUsed = Math.max.apply(null, r.used.concat([1]));
+    if (zoomK == null) {
+      var avail = Math.max(280, Math.min(document.body.clientWidth, 980) - 100);
+      zoomK = Math.max(2.5, Math.min(6, avail / maxUsed));
+    }
+    last.sheets.forEach(function (s, i) {
+      if (!(r.used[i] > 0)) return;
+      h += '<div class="sheet-head"><h3>종이 ' + (i + 1) + ' · 폭 ' + fmt(s.W) + ' × 길이 ' + fmt(r.used[i]) + 'cm ' + (last.unl[i] ? '필요' : '사용') + '</h3>' +
+        (i === last.sheets.findIndex(function (_, j) { return r.used[j] > 0; }) ? '<div class="zoom"><button type="button" data-z="-1" aria-label="축소">−</button><button type="button" data-z="1" aria-label="확대">+</button></div>' : '') + '</div>';
+      h += '<div class="plan" data-si="' + i + '">' + sheetSvg(i, zoomK) + '</div>';
+    });
+
+    // table
+    var rows = r.placed.slice().sort(function (a, b) { return a.sheet - b.sheet || a.x - b.x || a.y - b.y; });
+    h += '<div><div class="bar"><h2>재단표</h2><button type="button" id="copyTbl">표 복사</button></div><div class="tbl"><table><thead><tr><th>종이</th><th>길이 위치</th><th>폭 위치</th><th>조각</th><th>크기</th></tr></thead><tbody>' +
+      rows.map(function (p) {
+        return '<tr><td>' + (p.sheet + 1) + '</td><td class="n">' + fmt(p.x) + ' ~ ' + fmt(p.x + p.l) + '</td><td class="n">' + fmt(p.y) + ' ~ ' + fmt(p.y + p.w) + '</td><td><span class="sw c' + (p.piece.ti % 6) + '"></span>' + esc(p.piece.label) + '</td><td class="n">' + fmt(p.l) + '×' + fmt(p.w) + '</td></tr>';
+      }).join('') + '</tbody></table></div></div>';
+    h += '<div class="note">길이 위치는 종이 시작점에서, 폭 위치는 종이 한쪽 가장자리에서 잰 거리입니다. 폭 위치가 같은 조각은 한 줄입니다.</div>';
+    res.innerHTML = h;
+    res.onclick = stepClick;
+    updateStepCard(false);
+
+    res.querySelectorAll('[data-z]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        zoomK = Math.max(1.2, Math.min(10, zoomK * (b.dataset.z === '1' ? 1.4 : 1 / 1.4)));
+        render();
+      });
+    });
+    var cp = $('copyTbl');
+    if (cp) cp.addEventListener('click', function () {
+      var txt = '종이\t길이 위치\t폭 위치\t조각\t크기\n' + rows.map(function (p) {
+        return (p.sheet + 1) + '\t' + fmt(p.x) + '~' + fmt(p.x + p.l) + '\t' + fmt(p.y) + '~' + fmt(p.y + p.w) + '\t' + p.piece.label + '\t' + fmt(p.l) + '×' + fmt(p.w);
+      }).join('\n');
+      var done = function () { cp.textContent = '복사했습니다'; };
+      var fail = function () {
+        var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) { cp.textContent = '복사 실패'; }
+        ta.remove();
+      };
+      try { navigator.clipboard.writeText(txt).then(done, fail); } catch (e) { fail(); }
+    });
+  }
+
+  renderRows();
+  renderPresets();
+})();
+if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); }
+</script>
+
+</body>
+</html>
