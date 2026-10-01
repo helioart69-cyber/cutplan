@@ -27,6 +27,8 @@ body { margin: 0; }
   --line: #c5d0cd;
   --accent: #0b5fa5;
   --accent-ink: #ffffff;
+  --sheet-bg: #e6eff9; --sheet-line: #9db9d8; --sheet-ink: #0b4f8a;
+  --piece-bg: #fbeedd; --piece-line: #e0b98a; --piece-ink: #9a4a0c;
   --warn: #b4410c;
   --ok: #1b7a4b;
   --p0: #f1b7a4; --p0s: #b5573a;
@@ -42,6 +44,7 @@ body { margin: 0; }
   :root:not([data-theme="light"]) {
     --bg: #0f1a1d; --panel: #16262a; --ink: #dce7e5; --muted: #8fa5a2; --line: #2b4146;
     --accent: #6cb6f0; --accent-ink: #08202f; --warn: #f09a6a; --ok: #6fd1a0;
+    --sheet-bg: #14283a; --sheet-line: #2f5f95; --sheet-ink: #8fc4f5; --piece-bg: #2c2218; --piece-line: #8a6f2a; --piece-ink: #f0b878;
     --p0: #8c4a38; --p0s: #e69a82; --p1: #2f7a66; --p1s: #7fd0b6; --p2: #2f5f95; --p2s: #8fbdf0;
     --p3: #8a6f2a; --p3s: #e6c870; --p4: #62508f; --p4s: #beaaf0; --p5: #4a6468; --p5s: #a9c4c8;
     color-scheme: dark;
@@ -50,6 +53,7 @@ body { margin: 0; }
 :root[data-theme="dark"] {
   --bg: #0f1a1d; --panel: #16262a; --ink: #dce7e5; --muted: #8fa5a2; --line: #2b4146;
   --accent: #6cb6f0; --accent-ink: #08202f; --warn: #f09a6a; --ok: #6fd1a0;
+  --sheet-bg: #14283a; --sheet-line: #2f5f95; --sheet-ink: #8fc4f5; --piece-bg: #2c2218; --piece-line: #8a6f2a; --piece-ink: #f0b878;
   --p0: #8c4a38; --p0s: #e69a82; --p1: #2f7a66; --p1s: #7fd0b6; --p2: #2f5f95; --p2s: #8fbdf0;
   --p3: #8a6f2a; --p3s: #e6c870; --p4: #62508f; --p4s: #beaaf0; --p5: #4a6468; --p5s: #a9c4c8;
   color-scheme: dark;
@@ -61,12 +65,17 @@ h1 { font-size: 1.5rem; margin: 0; text-wrap: balance; letter-spacing: -0.01em; 
 h2 { font-size: 0.8rem; margin: 0; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
 .sub { color: var(--muted); margin: 4px 0 0; font-size: 0.9rem; max-width: 62ch; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel.sheets { background: var(--sheet-bg); border-color: var(--sheet-line); }
+.panel.sheets h2 { color: var(--sheet-ink); }
+.panel.pieces { background: var(--piece-bg); border-color: var(--piece-line); }
+.panel.pieces h2 { color: var(--piece-ink); }
+.panel.sheets .row { border-bottom-color: var(--sheet-line); } .panel.pieces .row { border-bottom-color: var(--piece-line); }
 .rows { display: flex; flex-direction: column; gap: 8px; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
 .row:last-child { border-bottom: 0; padding-bottom: 0; }
 .f { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .f label { font-size: 0.72rem; color: var(--muted); }
-.f.name { width: 72px; } .f.num { width: 96px; } .f.qty { width: 74px; } .f.mode { flex: 1 1 130px; min-width: 120px; }
+.f.name { width: 72px; } .f.num { width: 104px; } .f.qty { width: 74px; } .f.mode { flex: 1 1 130px; min-width: 120px; }
 input, select { font: inherit; font-family: var(--font-num); font-size: 1.1rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 12px 10px; min-height: 48px; width: 100%; min-width: 0; }
 select { font-family: var(--font-body); font-size: 0.9rem; }
 input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -122,16 +131,16 @@ svg .out { fill: none; stroke: var(--muted); stroke-dasharray: 5 4; }
 <div class="wrap">
   <header>
     <h1>재단 배치 계산기</h1>
-    <p class="sub">종이 크기와 자를 사각형을 입력하면, 종이를 가장 적게 쓰는 배치와 자르는 위치를 계산합니다. 모든 길이는 cm입니다.</p>
+    <p class="sub">종이 크기와 자를 사각형을 입력하면, 종이를 가장 적게 쓰는 배치와 자르는 위치를 계산합니다. 모든 길이의 단위는 cm입니다.</p>
   </header>
 
-  <section class="panel" aria-labelledby="h-sheets">
+  <section class="panel sheets" aria-labelledby="h-sheets">
     <div class="bar"><h2 id="h-sheets">가진 종이</h2><span class="ex" id="exTag">예시 값</span></div>
     <div class="rows" id="sheetRows"></div>
-    <div class="bar"><button id="addSheet" type="button">+ 종이 추가</button><span class="note">폭만 입력하면 필요한 길이를 계산합니다. 길이를 입력하면 그 안에서 배치합니다.</span></div>
+    <div class="bar"><button id="addSheet" type="button">+ 종이 추가</button><span class="note">폭(cm)만 입력하면 필요한 길이를 계산합니다. 길이(cm)를 입력하면 그 안에서 배치합니다.</span></div>
   </section>
 
-  <section class="panel" aria-labelledby="h-pieces">
+  <section class="panel pieces" aria-labelledby="h-pieces">
     <h2 id="h-pieces">자를 사각형</h2>
     <div class="rows" id="pieceRows"></div>
     <div class="bar"><button id="addPiece" type="button">+ 사각형 추가</button><span class="note">가로·세로는 돌려 놓아도 됩니다.</span></div>
@@ -140,7 +149,7 @@ svg .out { fill: none; stroke: var(--muted); stroke-dasharray: 5 4; }
   <section class="panel" aria-labelledby="h-opt">
     <h2 id="h-opt">옵션</h2>
     <div class="opts">
-      <div class="f num"><label for="gap">사각형 간격</label><input id="gap" type="number" inputmode="decimal" min="0" step="0.1" value="0"></div>
+      <div class="f num"><label for="gap">사각형 간격 (cm)</label><input id="gap" type="number" inputmode="decimal" min="0" step="0.1" value="0"></div>
       <div class="f" style="flex:1 1 220px"><label>분할은 각 사각형 줄에서 선택합니다</label><span class="note">'긴 변 나눔'은 긴 변만 둘로 잘라 이어 붙이는 방식입니다. 짧은 변은 그대로 유지됩니다.</span></div>
     </div>
     <button class="primary" id="go" type="button">배치 계산</button>
@@ -405,15 +414,15 @@ function makeSolver() {
     $('gap').value = state.gap;
     $('sheetRows').innerHTML = state.sheets.map(function (s, i) {
       return '<div class="row" data-i="' + i + '">' +
-        '<div class="f num"><label for="sw' + i + '">폭</label><input id="sw' + i + '" data-k="W" type="number" inputmode="decimal" min="1" value="' + s.W + '"></div>' +
-        '<div class="f num"><label for="sl' + i + '">길이 (선택)</label><input id="sl' + i + '" data-k="L" type="number" inputmode="decimal" min="1" placeholder="비우면 무제한" value="' + (s.L == null ? '' : s.L) + '"></div>' +
+        '<div class="f num"><label for="sw' + i + '">폭 (cm)</label><input id="sw' + i + '" data-k="W" type="number" inputmode="decimal" min="1" value="' + s.W + '"></div>' +
+        '<div class="f num"><label for="sl' + i + '">길이 (cm)</label><input id="sl' + i + '" data-k="L" type="number" inputmode="decimal" min="1" placeholder="무제한" value="' + (s.L == null ? '' : s.L) + '"></div>' +
         '<button class="ghost del" type="button" data-del="' + i + '" aria-label="종이 ' + (i + 1) + ' 삭제">삭제</button></div>';
     }).join('');
     $('pieceRows').innerHTML = state.pieces.map(function (p, i) {
       return '<div class="row" data-i="' + i + '">' +
         '<div class="f name"><label for="pn' + i + '">이름</label><input id="pn' + i + '" data-k="name" type="text" maxlength="4" value="' + esc(p.name) + '" style="font-family:var(--font-body)"></div>' +
-        '<div class="f num"><label for="pa' + i + '">가로</label><input id="pa' + i + '" data-k="a" type="number" inputmode="decimal" min="1" value="' + p.a + '"></div>' +
-        '<div class="f num"><label for="pb' + i + '">세로</label><input id="pb' + i + '" data-k="b" type="number" inputmode="decimal" min="1" value="' + p.b + '"></div>' +
+        '<div class="f num"><label for="pa' + i + '">가로 (cm)</label><input id="pa' + i + '" data-k="a" type="number" inputmode="decimal" min="1" value="' + p.a + '"></div>' +
+        '<div class="f num"><label for="pb' + i + '">세로 (cm)</label><input id="pb' + i + '" data-k="b" type="number" inputmode="decimal" min="1" value="' + p.b + '"></div>' +
         '<div class="f qty"><label for="pq' + i + '">수량</label><input id="pq' + i + '" data-k="qty" type="number" inputmode="numeric" min="1" step="1" value="' + p.qty + '"></div>' +
         '<div class="f mode"><label for="pm' + i + '">분할</label><select id="pm' + i + '" data-k="mode">' +
         ['none|안 나눔', 'long|긴 변 나눔', 'any|아무 변이나'].map(function (o) { var v = o.split('|'); return '<option value="' + v[0] + '"' + (p.mode === v[0] ? ' selected' : '') + '>' + v[1] + '</option>'; }).join('') +
